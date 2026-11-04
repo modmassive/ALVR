@@ -2,7 +2,7 @@ name: Rust
 
 on:
   push:
-    branches: [master]
+    branches: [master, cardboardlink/pc-host]
   pull_request:
     branches: [master]
 
@@ -188,3 +188,31 @@ jobs:
         run:  cargo xtask prepare-deps --platform linux --no-nvidia
 
       - run: cargo xtask check-msrv
+
+  build-ios-client-core:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build iOS client core
+        run: cargo build -p alvr_client_core --target aarch64-apple-ios --release
+
+      - name: Verify iOS static library
+        run: |
+          test -s target/aarch64-apple-ios/release/libalvr_client_core.a
+          ls -lh target/aarch64-apple-ios/release/libalvr_client_core.a
+
+      - name: Upload iOS static library
+        uses: actions/upload-artifact@v4
+        with:
+          name: alvr-client-core-ios
+          path: target/aarch64-apple-ios/release/libalvr_client_core.a
+          if-no-files-found: error
